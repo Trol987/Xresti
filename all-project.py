@@ -1,0 +1,661 @@
+import tkinter as tk
+from tkinter import ttk
+from tkinter import messagebox
+import random
+
+style = None
+
+class MegaTicTacToe:
+    def __init__(self, master, opponent, style="Menu.TButton"):
+        # инициализация переменных
+        self.master = master
+        self.opponent = opponent
+        self.current_player = "X"
+        self.style = style  # Сохраняем стиль
+         # Основной фрейм с тем же стилем, что и у меню
+        self.main_frame = ttk.Frame(master, style="Menu.TFrame")
+        self.main_frame.pack(expand=True, fill="both", padx=20, pady=20)
+        # Пример кнопки (использует переданный стиль)
+        self.reset_button = ttk.Button(
+            self.main_frame,
+            text="Начать заново",
+            style=self.style,  # Применяем стиль
+            command=self.reset_game
+        )
+        self.reset_button.pack(pady=10)
+        self.board = [[["" for _ in range(3)] for _ in range(3)] for _ in range(9)]
+        self.small_wins = ["" for _ in range(9)]
+        self.current_small_board = None
+        self.buttons = []
+        
+        self.setup_ui()
+        
+        # запуск бота если нужно
+        if self.opponent == "бот" and self.current_player == "O":
+            self.master.after(500, self.bot_move)
+    
+    def setup_ui(self):
+        self.master.title(f"Мега крестики-нолики ({self.opponent})")
+        self.master.geometry("1200x800")
+        
+        # верхняя надпись
+        self.top_label = ttk.Label(self.main_frame, text=f"Ходит: {self.current_player}", style="Menu.TLabel"
+)
+        self.top_label.pack(pady=10)
+        
+        # надпись с информацией о доске
+        self.board_label = ttk.Label(self.main_frame, text="Вы можете ходить на любую доску", style="Menu.TLabel")
+        self.board_label.pack()
+        
+        # главный фрейм для всех досок
+        main_frame = ttk.Frame(self.main_frame, style="Menu.TFrame")
+        main_frame.pack(expand=True)
+        
+        # создание 9 маленьких досок (3x3)
+        for big_row in range(3):
+            for big_col in range(3):
+                small_board_index = big_row * 3 + big_col
+                small_frame = ttk.Frame(main_frame,  style="SmallBoard.TFrame", padding=2)
+                small_frame.grid(row=big_row, column=big_col, padx=5, pady=5)
+                
+                # создание кнопок внутри маленькой доски
+                small_board_buttons = []
+                for small_row in range(3):
+                    row_buttons = []
+                    for small_col in range(3):
+                        btn = tk.Button(small_frame, text="", 
+                                      width=4, height=2, style=self.style,
+                            command=lambda br=big_row, bc=big_col,
+                                             sr=small_row, sc=small_col:
+                                             self.make_move(br, bc, sr, sc)
+                        )
+                        btn.grid(row=small_row, column=small_col, padx=2, pady=2)
+                        row_buttons.append(btn)
+                    small_board_buttons.append(row_buttons)
+                self.buttons.append(small_board_buttons)
+        
+        # кнопка возврата в главное меню
+        back_button = ttk.Button(self.main_frame,
+            text="В главное меню",
+            style=self.style,
+            command=self.go_to_main_menu
+        )
+        back_button.pack(pady=20)
+    
+    def make_move(self, big_row, big_col, small_row, small_col):
+        # вычисление индекса маленькой доски
+        small_board_index = big_row * 3 + big_col
+        
+        # проверка валидности хода
+        if self.current_small_board is not None and small_board_index != self.current_small_board:
+            return
+        
+        if self.small_wins[small_board_index] != "":
+            return
+        
+        if self.board[small_board_index][small_row][small_col] != "":
+            return
+        
+        # запись хода в массив
+        self.board[small_board_index][small_row][small_col] = self.current_player
+        
+        # обновление внешнего вида кнопки
+        color = "red" if self.current_player == "X" else "blue"
+        self.buttons[small_board_index][small_row][small_col].config(
+            text=self.current_player, 
+            fg=color,
+            state="disabled"
+        )
+        
+        # проверка победы на маленькой доске
+        if self.check_small_board_win(small_board_index, self.current_player):
+            self.small_wins[small_board_index] = self.current_player
+            self.mark_small_board_win(small_board_index)
+        
+        # определение следующей доски для хода
+        self.current_small_board = small_row * 3 + small_col
+        
+        # обновление информации о доступных ходах
+        if self.small_wins[self.current_small_board] != "" or self.is_small_board_full(self.current_small_board):
+            self.current_small_board = None
+            self.board_label.config(text="Вы можете ходить на любую доску")
+        else:
+            self.board_label.config(text=f"Следующий ход на доске {self.current_small_board+1}")
+        
+        # проверка конца игры
+        if self.check_global_win():
+            self.show_winner()
+            return
+        
+        if self.is_game_over():
+            self.show_game_result()
+            return
+        
+        # смена игрока
+        self.current_player = "O" if self.current_player == "X" else "X"
+        self.top_label.config(text=f"Ходит: {self.current_player}")
+        
+        # запуск хода бота если играем с ботом
+        if self.opponent == "бот" and self.current_player == "O":
+            self.master.after(500, self.bot_move)
+    
+    def bot_move(self):
+        # получение лучшего хода от бота
+        move = self.get_best_move()
+        if move:
+            big_row, big_col, small_row, small_col = move
+            self.make_move(big_row, big_col, small_row, small_col)
+    
+    def get_best_move(self):
+        # сбор всех доступных ходов
+        available_moves = []
+        
+        if self.current_small_board is None:
+            # поиск по всем доскам
+            for big_index in range(9):
+                if self.small_wins[big_index] == "" and not self.is_small_board_full(big_index):
+                    big_row, big_col = divmod(big_index, 3)
+                    for small_row in range(3):
+                        for small_col in range(3):
+                            if self.board[big_index][small_row][small_col] == "":
+                                available_moves.append((big_row, big_col, small_row, small_col))
+        else:
+            # поиск только по текущей доске
+            big_row, big_col = divmod(self.current_small_board, 3)
+            for small_row in range(3):
+                for small_col in range(3):
+                    if self.board[self.current_small_board][small_row][small_col] == "":
+                        available_moves.append((big_row, big_col, small_row, small_col))
+        
+        if not available_moves:
+            return None
+        
+        # поиск выигрышных ходов
+        winning_moves = []
+        blocking_moves = []
+        
+        for move in available_moves:
+            big_row, big_col, small_row, small_col = move
+            big_index = big_row * 3 + big_col
+            
+            # проверка выигрышного хода для бота
+            temp_board = [row[:] for row in self.board[big_index]]
+            temp_board[small_row][small_col] = "O"
+            
+            if self.check_small_board_win_for_board(temp_board, "O"):
+                winning_moves.append(move)
+            
+            # проверка блокировки хода соперника
+            temp_board[small_row][small_col] = "X"
+            if self.check_small_board_win_for_board(temp_board, "X"):
+                blocking_moves.append(move)
+        
+        # выбор хода по приоритетам
+        if winning_moves:
+            return random.choice(winning_moves)
+        
+        if blocking_moves:
+            return random.choice(blocking_moves)
+        
+        # предпочтение центральных клеток
+        center_moves = []
+        corner_moves = []
+        
+        for move in available_moves:
+            _, _, small_row, small_col = move
+            if small_row == 1 and small_col == 1:
+                center_moves.append(move)
+            elif (small_row, small_col) in [(0, 0), (0, 2), (2, 0), (2, 2)]:
+                corner_moves.append(move)
+        
+        if center_moves:
+            return random.choice(center_moves)
+        
+        if corner_moves:
+            return random.choice(corner_moves)
+        
+        return random.choice(available_moves)
+    
+    def check_small_board_win_for_board(self, board, player):
+        # проверка горизонталей
+        for i in range(3):
+            if board[i][0] == board[i][1] == board[i][2] == player:
+                return True
+            if board[0][i] == board[1][i] == board[2][i] == player:
+                return True
+        
+        # проверка диагоналей
+        if board[0][0] == board[1][1] == board[2][2] == player:
+            return True
+        if board[0][2] == board[1][1] == board[2][0] == player:
+            return True
+        
+        return False
+    
+    def check_small_board_win(self, board_index, player):
+        return self.check_small_board_win_for_board(self.board[board_index], player)
+    
+    def is_small_board_full(self, board_index):
+        # проверка заполненности маленькой доски
+        return all(self.board[board_index][i][j] != "" 
+                  for i in range(3) for j in range(3))
+    
+    def mark_small_board_win(self, board_index):
+        # отметка выигранной маленькой доски
+        for small_row in range(3):
+            for small_col in range(3):
+                self.buttons[board_index][small_row][small_col].config(
+                    text=self.small_wins[board_index],
+                    fg="green" if self.small_wins[board_index] == "X" else "purple",
+                    state="disabled"
+                )
+    
+    def check_global_win(self):
+        # преобразование массива побед в сетку 3x3
+        small_wins_grid = [[self.small_wins[i*3 + j] for j in range(3)] for i in range(3)]
+        
+        # проверка линий в глобальной доске
+        for i in range(3):
+            if small_wins_grid[i][0] == small_wins_grid[i][1] == small_wins_grid[i][2] != "":
+                return small_wins_grid[i][0]
+            if small_wins_grid[0][i] == small_wins_grid[1][i] == small_wins_grid[2][i] != "":
+                return small_wins_grid[0][i]
+        
+        # проверка диагоналей в глобальной доске
+        if small_wins_grid[0][0] == small_wins_grid[1][1] == small_wins_grid[2][2] != "":
+            return small_wins_grid[0][0]
+        if small_wins_grid[0][2] == small_wins_grid[1][1] == small_wins_grid[2][0] != "":
+            return small_wins_grid[0][2]
+        
+        return None
+    
+    def is_game_over(self):
+        # проверка конца игры
+        if self.check_global_win():
+            return True
+        
+        # проверка остались ли возможные ходы
+        for i in range(9):
+            if self.small_wins[i] == "" and not self.is_small_board_full(i):
+                return False
+        
+        return True
+    
+    def show_winner(self):
+        # показ сообщения о победителе
+        winner = self.check_global_win()
+        messagebox.showinfo("Игра окончена", f"Победил {winner}!")
+        self.go_to_main_menu()
+    
+    def show_game_result(self):
+        # показ результата игры при ничьей
+        x_wins = self.small_wins.count("X")
+        o_wins = self.small_wins.count("O")
+        
+        if x_wins > o_wins:
+            result = f"Победил X! ({x_wins} малых досок против {o_wins})"
+        elif o_wins > x_wins:
+            result = f"Победил O! ({o_wins} малых досок против {x_wins})"
+        else:
+            result = f"Ничья! ({x_wins} малых досок у каждого)"
+        
+        messagebox.showinfo("Игра окончена", result)
+        self.go_to_main_menu()
+    
+    def go_to_main_menu(self):
+        # возврат в главное меню
+        self.master.destroy()
+        root.deiconify()
+
+
+class ClassicTicTacToe:
+    def __init__(self, master, opponent, style="Menu.TButton"):
+        # инициализация переменных для обычной игры
+        self.master = master
+        self.opponent = opponent
+        self.current_player = "X"
+        self.style = style
+        self.main_frame = ttk.Frame(master, style="Menu.TFrame")
+        self.main_frame.pack(expand=True, fill="both", padx=20, pady=20)
+         # Кнопка "Начать заново" (с применением стиля)
+        self.reset_button = ttk.Button(
+            self.main_frame,
+            text="Начать заново",
+            style=self.style,
+            command=self.reset_game
+        )
+        self.reset_button.pack(pady=10)
+        self.board = [["" for _ in range(3)] for _ in range(3)]
+        self.buttons = [[None for _ in range(3)] for _ in range(3)]
+        
+        self.setup_ui()
+        
+        # запуск бота если нужно
+        if self.opponent == "бот" and self.current_player == "O":
+            self.master.after(500, self.bot_move)
+    
+    def setup_ui(self):
+        self.master.title(f"Крестики-нолики ({self.opponent})")
+        self.master.geometry("1200x800")
+        
+        # верхняя надпись
+        self.top_label = ttk.Label(self.main_frame,
+            text=f"Ходит: {self.current_player}",
+            style="Menu.TLabel"
+        )
+        self.top_label.pack(pady=10)
+        
+         # Надпись с подсказкой
+        self.board_label = ttk.Label(
+            self.main_frame,
+            text="Кликните на клетку, чтобы сделать ход",
+            style="Menu.TLabel"
+        )
+        self.board_label.pack(pady=5)
+
+        # Фрейм для игровой доски
+        game_frame = ttk.Frame(self.main_frame, style="Menu.TFrame")
+        game_frame.pack(expand=True, pady=20)
+        
+        # создание кнопок для доски 3x3
+        for i in range(3):
+            for j in range(3):
+                btn = tk.Button(game_frame, text="", 
+                              width=10,
+                              style=self.style,
+                              command=lambda r=i, c=j: self.on_click(r, c))
+                btn.grid(row=i, column=j, padx=5, pady=5)
+                self.buttons[i][j] = btn
+        
+        # кнопка возврата в главное меню
+        back_button = ttk.Button(self.main_frame, text="В главное меню", 
+                              style=self.style,
+            command=self.go_to_main_menu
+        )
+        back_button.pack(pady=20)
+    
+    def on_click(self, row, col):
+        # обработка нажатия на кнопку
+        if self.board[row][col] != "":
+            return
+        
+        # запись хода
+        self.board[row][col] = self.current_player
+        self.buttons[row][col].config(
+            text=self.current_player, 
+            fg="red" if self.current_player == "X" else "blue",
+            state="disabled"
+        )
+        
+        # проверка победы
+        winner = self.check_winner()
+        if winner:
+            self.end_game(winner)
+            return
+        
+        # смена игрока
+        self.current_player = "O" if self.current_player == "X" else "X"
+        self.top_label.config(text=f"Ходит: {self.current_player}")
+        
+        # запуск хода бота если играем с ботом
+        if self.opponent == "бот" and self.current_player == "O":
+            self.master.after(500, self.bot_move)
+    
+    def bot_move(self):
+        # ход бота
+        move = self.get_best_move()
+        if move:
+            row, col = move
+            self.on_click(row, col)
+    
+    def get_best_move(self):
+        # сбор всех доступных ходов
+        available_moves = [(i, j) for i in range(3) for j in range(3) if self.board[i][j] == ""]
+        
+        if not available_moves:
+            return None
+        
+        # поиск выигрышного хода для бота
+        for row, col in available_moves:
+            temp_board = [row[:] for row in self.board]
+            temp_board[row][col] = "O"
+            if self.check_winner_for_board(temp_board) == "O":
+                return (row, col)
+        
+        # поиск блокировки выигрыша соперника
+        for row, col in available_moves:
+            temp_board = [row[:] for row in self.board]
+            temp_board[row][col] = "X"
+            if self.check_winner_for_board(temp_board) == "X":
+                return (row, col)
+        
+        # приоритет центра
+        if self.board[1][1] == "":
+            return (1, 1)
+        
+        # приоритет углов
+        corners = [(0, 0), (0, 2), (2, 0), (2, 2)]
+        available_corners = [(r, c) for r, c in corners if self.board[r][c] == ""]
+        if available_corners:
+            return random.choice(available_corners)
+        
+        # приоритет сторон
+        edges = [(0, 1), (1, 0), (1, 2), (2, 1)]
+        available_edges = [(r, c) for r, c in edges if self.board[r][c] == ""]
+        if available_edges:
+            return random.choice(available_edges)
+        
+        return random.choice(available_moves)
+    
+    def check_winner_for_board(self, board):
+        # проверка горизонталей
+        for i in range(3):
+            if board[i][0] == board[i][1] == board[i][2] != "":
+                return board[i][0]
+            if board[0][i] == board[1][i] == board[2][i] != "":
+                return board[0][i]
+        
+        # проверка диагоналей
+        if board[0][0] == board[1][1] == board[2][2] != "":
+            return board[0][0]
+        if board[0][2] == board[1][1] == board[2][0] != "":
+            return board[0][2]
+        
+        # проверка ничьей
+        if all(board[i][j] != "" for i in range(3) for j in range(3)):
+            return "Ничья"
+        
+        return None
+    
+    def check_winner(self):
+        return self.check_winner_for_board(self.board)
+    
+    def end_game(self, winner):
+        # завершение игры
+        if winner == "Ничья":
+            messagebox.showinfo("Игра окончена", "Ничья!")
+        else:
+            messagebox.showinfo("Игра окончена", f"Победил {winner}!")
+        self.go_to_main_menu()
+    
+    def go_to_main_menu(self):
+        # возврат в главное меню
+        self.master.destroy()
+        root.deiconify()
+
+
+def open_bot_menu():
+    # открытие меню игры с ботом
+    root.withdraw()
+    bot_menu = tk.Toplevel()
+    bot_menu.geometry("1200x800")
+    bot_menu.title("Игра с ботом")
+    bot_menu.configure(bg="#05050F")
+    
+    setup_theme()
+    
+    
+    # надпись выбора режима
+    label = ttk.Label(bot_menu, text="Выберите режим игры с ботом", style="Menu.TLabel")
+    label.place(relx=0.5, rely=0.25, anchor="center")
+    
+    
+    # фрейм для кнопок выбора
+    frame = ttk.Frame(bot_menu, style="TFrame", padding=20)
+    frame.place(relx=0.5, rely=0.5, anchor="center")
+    
+    # кнопка обычной игры
+    classic_button = ttk.Button(frame, text="Обычные крестики-нолики", style="Menu.TButton",command=lambda: start_classic_game(bot_menu, "бот"))
+    classic_button.grid(row=0, column=0, padx=30, pady=15)
+    
+    # кнопка мега игры
+    mega_button = ttk.Button(frame, text="Мега крестики-нолики", style="Menu.TButton",command=lambda: start_mega_game(bot_menu, "бот"))
+    mega_button.grid(row=0, column=1, padx=30, pady=15)
+    
+    # кнопка назад
+    back_button = ttk.Button(bot_menu, text="Назад", style="Menu.TButton",command=lambda: go_back(bot_menu))
+    back_button.place(relx=0.5, rely=0.80, anchor="center")
+
+
+def start_classic_game(menu, opponent):
+    # запуск обычной игры
+    menu.destroy()
+    game_window = tk.Toplevel()
+    game_window.geometry("1200x800")
+    game_window.configure(bg="#05050F")
+    
+    setup_theme()
+    
+    ClassicTicTacToe(game_window, opponent, style="Menu.TButton")
+
+
+def start_mega_game(menu, opponent):
+    # запуск мега игры
+    menu.destroy()
+    game_window = ttk.Toplevel()
+    game_window.geometry("1200x800")
+    game_window.configure(bg="#05050F")
+    
+    setup_theme()
+    MegaTicTacToe(game_window, opponent, style="Menu.TButton")
+
+
+def open_friend_menu():
+    # открытие меню игры с другом
+    root.withdraw()
+    friend_menu = tk.Toplevel()
+    friend_menu.geometry("1200x800")
+    friend_menu.title("Игра с другом")
+    friend_menu.configure(bg="#05050F")
+
+    setup_theme()
+
+    
+    # надпись выбора режима
+    label = tk.Label(friend_menu, text="Выберите режим игры с другом", style="Menu.TLabel")
+    label.pack(pady=50)
+    
+    # фрейм для кнопок выбора
+    frame = tk.Frame(friend_menu, style="Menu.TFrame")
+    frame.pack()
+    
+    # кнопка обычной игры
+    classic_button = tk.Button(frame, text="Обычные крестики-нолики", style="Menu.TButton", command=lambda: start_classic_game(friend_menu, "друг"))
+    classic_button.place(relx=0.5, rely=0.45, anchor="center")
+    
+    # кнопка мега игры
+    mega_button = tk.Button(frame, text="Мега крестики-нолики", style="Menu.TButton", command=lambda: start_mega_game(friend_menu, "друг"))
+    mega_button.grid(row=0, column=1, padx=50, pady=30)
+    
+    # кнопка назад
+    back_button = tk.Button(friend_menu, text="Назад", style="Menu.TButton", command=lambda: go_back(friend_menu))
+    back_button.pack(pady=50)
+
+
+def setup_theme():
+    global style
+    style = ttk.Style()
+    style.theme_use("clam")
+
+    BG_DARK = "#0a0a14"
+    ACCENT_PINK = "#ff1493"
+    ACCENT_CYAN = "#00ffff"
+    TEXT_WHITE = "#ffffff"
+    CP_WIDGET_BG = "#14001E" # widget_background_color=(20, 0, 30) → тёмно‑фиолетовый
+
+    style.configure(
+        "Menu.TFrame",
+        background=CP_WIDGET_BG
+    )
+    style.configure(
+        "Menu.TLabel",
+        foreground=TEXT_WHITE,
+        background=BG_DARK,
+        font=("Consolas", 14)
+    )
+    
+    style.configure(
+        "Menu.TButton",
+        font=("Consolas", 12, "bold"),
+        foreground=TEXT_WHITE,
+        background=ACCENT_PINK,
+        padding=10
+    )
+    style.map(
+        "Menu.TButton",
+        background=[("active", ACCENT_CYAN)],
+        foreground=[("active", BG_DARK)]
+    )
+
+    style.configure(
+        "Game.TButton",
+        font=("Courier", 16, "bold"),
+        foreground="#00ff88",
+        background="#1a1a2a",
+        padding=5
+    )
+
+# Главное окно
+root = tk.Tk()
+root.geometry("1200x800")
+root.title("Главное меню")
+root.configure(bg="#05050F")
+setup_theme()
+
+# Фрейм для меню 
+frame = ttk.Frame(root, style="Menu.TFrame")
+frame.pack(expand=True, fill="both", padx=40, pady=40)
+
+# Заголовок
+title = ttk.Label(
+    root,
+    text="Крестики‑нолики",
+    font = ("Arial", 40),
+    foreground="white", 
+    background="#00ffff",
+    style="CP.Title.TLabel",
+    anchor="center"  
+)
+title.place(relx=0.5, rely=0.45, anchor="center")
+
+# Кнопка "Играть с ботом" 
+bot_button = ttk.Button(
+    frame,
+    text="Играть с ботом",
+    style="Menu.TButton",
+    command=open_bot_menu
+)
+bot_button.place(relx=0.4, rely=0.60, anchor="center")
+
+
+# Кнопка "Играть с другом"
+friend_button = ttk.Button(
+    frame,
+    text="Играть с другом",
+    style="Menu.TButton",
+    command=open_friend_menu
+)
+friend_button.place(relx=0.6, rely=0.60, anchor="center")
+
+
+root.mainloop()
