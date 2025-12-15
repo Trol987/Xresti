@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
+import winsound
+winsound.PlaySound("sounds/click.wav", winsound.SND_FILENAME)
 import random
 
 style = None
@@ -463,15 +465,40 @@ def open_bot_menu():
     frame.place(relx=0.5, rely=0.5, anchor="center")
     
     # кнопка обычной игры
-    classic_button = ttk.Button(frame, text="Обычные крестики-нолики", style="Menu.TButton",command=lambda: start_classic_game(bot_menu, "бот"))
+    classic_button = ttk.Button(
+        frame,
+        text="Обычные крестики-нолики",
+        style="Menu.TButton",
+        command=lambda: [
+            play_button_sound(),
+            start_classic_game(bot_menu, "бот")
+        ]
+    )
     classic_button.grid(row=0, column=0, padx=30, pady=15)
+
     
     # кнопка мега игры
-    mega_button = ttk.Button(frame, text="Мега крестики-нолики", style="Menu.TButton",command=lambda: start_mega_game(bot_menu, "бот"))
+    mega_button = ttk.Button(
+        frame,
+        text="Мега крестики-нолики",
+        style="Menu.TButton",
+        command=lambda: [
+            play_button_sound(),
+            start_mega_game(bot_menu, "бот")
+        ]
+    )
     mega_button.grid(row=0, column=1, padx=30, pady=15)
     
     # кнопка назад
-    back_button = ttk.Button(bot_menu, text="Назад", style="Menu.TButton",command=lambda: go_back(bot_menu))
+    back_button = ttk.Button(
+        bot_menu,
+        text="Назад",
+        style="Menu.TButton",
+        command=lambda: [
+            play_button_sound(),
+            go_back(bot_menu)
+        ]
+    )
     back_button.place(relx=0.5, rely=0.80, anchor="center")
 
 
@@ -481,7 +508,11 @@ def start_classic_game(menu, opponent):
     game_window = tk.Toplevel()
     game_window.geometry("1200x800")
     game_window.configure(bg="#05050F")
-    
+    # ЗАПУСКАЕМ ФОНОВУЮ МУЗЫКУ ПРИ СТАРТЕ ИГРЫ
+    winsound.PlaySound(
+        "cosmic-pulse_90009.wav",  
+        winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_LOOP
+    )
     setup_theme()
     
     ClassicTicTacToe(game_window, opponent)
@@ -493,14 +524,20 @@ def start_mega_game(menu, opponent):
     game_window = tk.Toplevel()
     game_window.geometry("1200x800")
     game_window.configure(bg="#05050F")
+    # ЗАПУСКАЕМ ФОНОВУЮ МУЗЫКУ ПРИ СТАРТЕ ИГРЫ
+    winsound.PlaySound(
+        "cosmic-pulse_90009.wav",  
+        winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_LOOP
+    )
     
     setup_theme()
     MegaTicTacToe(game_window, opponent)
 
 def go_back(current_window):
+    winsound.PlaySound(None, winsound.SND_ASYNC)  # останавливаем музыку
     current_window.destroy()
     root.deiconify()  
-    
+
     
 def open_friend_menu():
     # открытие меню игры с другом
@@ -522,18 +559,48 @@ def open_friend_menu():
     frame.place(relx=0.5, rely=0.5, anchor="center")
     
     # кнопка обычной игры
-    classic_button = ttk.Button(frame, text="Обычные крестики-нолики", style="Menu.TButton", command=lambda: start_classic_game(friend_menu, "друг"))
+    classic_button = ttk.Button(
+        frame,
+        text="Обычные крестики-нолики",
+        style="Menu.TButton",
+        command=lambda: [
+            play_button_sound(),
+            start_classic_game(friend_menu, "друг")
+        ]
+    )
     classic_button.grid(row=0, column=0, padx=30, pady=15)
     
     # кнопка мега игры
-    mega_button = ttk.Button(frame, text="Мега крестики-нолики", style="Menu.TButton", command=lambda: start_mega_game(friend_menu, "друг"))
+    mega_button = ttk.Button(
+        frame,
+        text="Мега крестики-нолики",
+        style="Menu.TButton",
+        command=lambda: [
+            play_button_sound(),
+            start_mega_game(friend_menu, "друг")
+        ]
+    )
     mega_button.grid(row=0, column=1, padx=30, pady=15)
     
     # кнопка назад
-    back_button = ttk.Button(friend_menu, text="Назад", style="Menu.TButton", command=lambda: go_back(friend_menu))
+    back_button = ttk.Button(
+        friend_menu,
+        text="Назад",
+        style="Menu.TButton",
+        command=lambda: [
+            play_button_sound(),
+            go_back(friend_menu)
+        ]
+    )
     back_button.place(relx=0.5, rely=0.80, anchor="center")
-
-
+    
+# звук кнопки
+def play_button_sound():
+    winsound.PlaySound(
+        "klick.wav",
+        winsound.SND_FILENAME
+    )
+    
 def setup_theme():
     global style
     style = ttk.Style()
@@ -605,7 +672,10 @@ bot_button = ttk.Button(
     frame,
     text="Играть с ботом",
     style="Menu.TButton",
-    command=open_bot_menu
+    command=lambda: [
+        play_button_sound(),
+        open_bot_menu()
+    ]
 )
 bot_button.place(relx=0.4, rely=0.60, anchor="center")
 
@@ -615,7 +685,10 @@ friend_button = ttk.Button(
     frame,
     text="Играть с другом",
     style="Menu.TButton",
-    command=open_friend_menu
+    command=lambda: [
+        play_button_sound(),
+        open_friend_menu()
+    ]
 )
 friend_button.place(relx=0.6, rely=0.60, anchor="center")
 
