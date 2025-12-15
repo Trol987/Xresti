@@ -456,7 +456,7 @@ def open_bot_menu():
     
     
     # надпись выбора режима
-    label = ttk.Label(bot_menu, text="Выберите режим игры с ботом", style="Menu.TLabel")
+    label = ttk.Label(bot_menu, text="Выберите режим игры с ботом", style="Menu.TLabel", font=("Courier New", 20 , "bold"))
     label.place(relx=0.5, rely=0.25, anchor="center")
     
     
@@ -620,12 +620,12 @@ def setup_theme():
         "Menu.TLabel",
         foreground=TEXT_WHITE,
         background=BG_DARK,
-        font=("Consolas", 14)
+        font=("Courier New", 16)
     )
     
     style.configure(
         "Menu.TButton",
-        font=("Consolas", 12, "bold"),
+        font=("Courier New", 14),
         foreground=TEXT_WHITE,
         background=ACCENT_PINK,
         padding=10
@@ -638,7 +638,7 @@ def setup_theme():
 
     style.configure(
         "Game.TButton",
-        font=("Courier", 16, "bold"),
+        font=("Courier New", 18),
         foreground="#00ff88",
         background="#1a1a2a",
         padding=5
@@ -659,7 +659,7 @@ frame.pack(expand=True, fill="both", padx=40, pady=40)
 title = ttk.Label(
     root,
     text="Крестики‑нолики",
-    font = ("Arial", 40),
+    font = ("Courier New", 40),
     foreground="white", 
     background="#00ffff",
     style="CP.Title.TLabel",
