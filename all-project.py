@@ -6,23 +6,11 @@ import random
 style = None
 
 class MegaTicTacToe:
-    def __init__(self, master, opponent, style="Menu.TButton"):
+    def __init__(self, master, opponent):
         # инициализация переменных
         self.master = master
         self.opponent = opponent
         self.current_player = "X"
-        self.style = style  # Сохраняем стиль
-         # Основной фрейм с тем же стилем, что и у меню
-        self.main_frame = ttk.Frame(master, style="Menu.TFrame")
-        self.main_frame.pack(expand=True, fill="both", padx=20, pady=20)
-        # Пример кнопки (использует переданный стиль)
-        self.reset_button = ttk.Button(
-            self.main_frame,
-            text="Начать заново",
-            style=self.style,  # Применяем стиль
-            command=self.reset_game
-        )
-        self.reset_button.pack(pady=10)
         self.board = [[["" for _ in range(3)] for _ in range(3)] for _ in range(9)]
         self.small_wins = ["" for _ in range(9)]
         self.current_small_board = None
@@ -36,26 +24,25 @@ class MegaTicTacToe:
     
     def setup_ui(self):
         self.master.title(f"Мега крестики-нолики ({self.opponent})")
-        self.master.geometry("1200x800")
+        self.master.geometry("1920x1080")
         
         # верхняя надпись
-        self.top_label = ttk.Label(self.main_frame, text=f"Ходит: {self.current_player}", style="Menu.TLabel"
-)
+        self.top_label = tk.Label(self.master, text=f"Ходит: {self.current_player}")
         self.top_label.pack(pady=10)
         
         # надпись с информацией о доске
-        self.board_label = ttk.Label(self.main_frame, text="Вы можете ходить на любую доску", style="Menu.TLabel")
+        self.board_label = tk.Label(self.master, text="Вы можете ходить на любую доску")
         self.board_label.pack()
         
         # главный фрейм для всех досок
-        main_frame = ttk.Frame(self.main_frame, style="Menu.TFrame")
+        main_frame = tk.Frame(self.master)
         main_frame.pack(expand=True)
         
         # создание 9 маленьких досок (3x3)
         for big_row in range(3):
             for big_col in range(3):
                 small_board_index = big_row * 3 + big_col
-                small_frame = ttk.Frame(main_frame,  style="SmallBoard.TFrame", padding=2)
+                small_frame = tk.Frame(main_frame, relief="solid", borderwidth=2)
                 small_frame.grid(row=big_row, column=big_col, padx=5, pady=5)
                 
                 # создание кнопок внутри маленькой доски
@@ -64,22 +51,18 @@ class MegaTicTacToe:
                     row_buttons = []
                     for small_col in range(3):
                         btn = tk.Button(small_frame, text="", 
-                                      width=4, height=2, style=self.style,
-                            command=lambda br=big_row, bc=big_col,
-                                             sr=small_row, sc=small_col:
-                                             self.make_move(br, bc, sr, sc)
-                        )
+                                      width=4, height=2, relief="ridge",
+                                      command=lambda br=big_row, bc=big_col, 
+                                      sr=small_row, sc=small_col: 
+                                      self.make_move(br, bc, sr, sc))
                         btn.grid(row=small_row, column=small_col, padx=2, pady=2)
                         row_buttons.append(btn)
                     small_board_buttons.append(row_buttons)
                 self.buttons.append(small_board_buttons)
         
         # кнопка возврата в главное меню
-        back_button = ttk.Button(self.main_frame,
-            text="В главное меню",
-            style=self.style,
-            command=self.go_to_main_menu
-        )
+        back_button = tk.Button(self.master, text="В главное меню", 
+                              width=20, height=2, command=self.go_to_main_menu)
         back_button.pack(pady=20)
     
     def make_move(self, big_row, big_col, small_row, small_col):
@@ -309,22 +292,11 @@ class MegaTicTacToe:
 
 
 class ClassicTicTacToe:
-    def __init__(self, master, opponent, style="Menu.TButton"):
+    def __init__(self, master, opponent):
         # инициализация переменных для обычной игры
         self.master = master
         self.opponent = opponent
         self.current_player = "X"
-        self.style = style
-        self.main_frame = ttk.Frame(master, style="Menu.TFrame")
-        self.main_frame.pack(expand=True, fill="both", padx=20, pady=20)
-         # Кнопка "Начать заново" (с применением стиля)
-        self.reset_button = ttk.Button(
-            self.main_frame,
-            text="Начать заново",
-            style=self.style,
-            command=self.reset_game
-        )
-        self.reset_button.pack(pady=10)
         self.board = [["" for _ in range(3)] for _ in range(3)]
         self.buttons = [[None for _ in range(3)] for _ in range(3)]
         
@@ -336,42 +308,28 @@ class ClassicTicTacToe:
     
     def setup_ui(self):
         self.master.title(f"Крестики-нолики ({self.opponent})")
-        self.master.geometry("1200x800")
+        self.master.geometry("1920x1080")
         
         # верхняя надпись
-        self.top_label = ttk.Label(self.main_frame,
-            text=f"Ходит: {self.current_player}",
-            style="Menu.TLabel"
-        )
-        self.top_label.pack(pady=10)
+        self.top_label = tk.Label(self.master, text=f"Ходит: {self.current_player}")
+        self.top_label.pack(pady=20)
         
-         # Надпись с подсказкой
-        self.board_label = ttk.Label(
-            self.main_frame,
-            text="Кликните на клетку, чтобы сделать ход",
-            style="Menu.TLabel"
-        )
-        self.board_label.pack(pady=5)
-
-        # Фрейм для игровой доски
-        game_frame = ttk.Frame(self.main_frame, style="Menu.TFrame")
-        game_frame.pack(expand=True, pady=20)
+        # фрейм для игровой доски
+        board_frame = tk.Frame(self.master)
+        board_frame.pack(expand=True)
         
         # создание кнопок для доски 3x3
         for i in range(3):
             for j in range(3):
-                btn = tk.Button(game_frame, text="", 
-                              width=10,
-                              style=self.style,
+                btn = tk.Button(board_frame, text="", 
+                              width=6, height=3, relief="ridge",
                               command=lambda r=i, c=j: self.on_click(r, c))
                 btn.grid(row=i, column=j, padx=5, pady=5)
                 self.buttons[i][j] = btn
         
         # кнопка возврата в главное меню
-        back_button = ttk.Button(self.main_frame, text="В главное меню", 
-                              style=self.style,
-            command=self.go_to_main_menu
-        )
+        back_button = tk.Button(self.master, text="В главное меню", 
+                              width=20, height=2, command=self.go_to_main_menu)
         back_button.pack(pady=20)
     
     def on_click(self, row, col):
@@ -526,20 +484,24 @@ def start_classic_game(menu, opponent):
     
     setup_theme()
     
-    ClassicTicTacToe(game_window, opponent, style="Menu.TButton")
+    ClassicTicTacToe(game_window, opponent)
 
 
 def start_mega_game(menu, opponent):
     # запуск мега игры
     menu.destroy()
-    game_window = ttk.Toplevel()
+    game_window = tk.Toplevel()
     game_window.geometry("1200x800")
     game_window.configure(bg="#05050F")
     
     setup_theme()
-    MegaTicTacToe(game_window, opponent, style="Menu.TButton")
+    MegaTicTacToe(game_window, opponent)
 
-
+def go_back(current_window):
+    current_window.destroy()
+    root.deiconify()  
+    
+    
 def open_friend_menu():
     # открытие меню игры с другом
     root.withdraw()
@@ -552,24 +514,24 @@ def open_friend_menu():
 
     
     # надпись выбора режима
-    label = tk.Label(friend_menu, text="Выберите режим игры с другом", style="Menu.TLabel")
-    label.pack(pady=50)
+    label = ttk.Label(friend_menu, text="Выберите режим игры с другом", style="Menu.TLabel")
+    label.place(relx=0.5, rely=0.25, anchor="center")
     
     # фрейм для кнопок выбора
-    frame = tk.Frame(friend_menu, style="Menu.TFrame")
-    frame.pack()
+    frame = ttk.Frame(friend_menu, style="Menu.TFrame", padding=20)
+    frame.place(relx=0.5, rely=0.5, anchor="center")
     
     # кнопка обычной игры
-    classic_button = tk.Button(frame, text="Обычные крестики-нолики", style="Menu.TButton", command=lambda: start_classic_game(friend_menu, "друг"))
-    classic_button.place(relx=0.5, rely=0.45, anchor="center")
+    classic_button = ttk.Button(frame, text="Обычные крестики-нолики", style="Menu.TButton", command=lambda: start_classic_game(friend_menu, "друг"))
+    classic_button.grid(row=0, column=0, padx=30, pady=15)
     
     # кнопка мега игры
-    mega_button = tk.Button(frame, text="Мега крестики-нолики", style="Menu.TButton", command=lambda: start_mega_game(friend_menu, "друг"))
-    mega_button.grid(row=0, column=1, padx=50, pady=30)
+    mega_button = ttk.Button(frame, text="Мега крестики-нолики", style="Menu.TButton", command=lambda: start_mega_game(friend_menu, "друг"))
+    mega_button.grid(row=0, column=1, padx=30, pady=15)
     
     # кнопка назад
-    back_button = tk.Button(friend_menu, text="Назад", style="Menu.TButton", command=lambda: go_back(friend_menu))
-    back_button.pack(pady=50)
+    back_button = ttk.Button(friend_menu, text="Назад", style="Menu.TButton", command=lambda: go_back(friend_menu))
+    back_button.place(relx=0.5, rely=0.80, anchor="center")
 
 
 def setup_theme():
